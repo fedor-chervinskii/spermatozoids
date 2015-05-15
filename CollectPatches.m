@@ -1,9 +1,13 @@
+function [pos_patches, neg_patches] = CollectPatches(m, plot)
+
+%function collects patches with spermatozoids at the center
+% and patches with background
+
 fileList = dir('labels/*.csv');
 fileList = {fileList.name}'
 
 %patches m x m pixels
 
-m = 29
 d = (m-1)/2
 
 bias = 10
@@ -56,7 +60,9 @@ pos_patches = pos_patches(1:pos_counter-1,:);
 neg_patches = neg_patches(1:neg_counter-1,:);
 pos_indices = randsample(pos_counter-1,50);
 neg_indices = randsample(neg_counter-1,50);
-for i = 1:50
-    subplot(10,10,i), imshow(reshape(pos_patches(pos_indices(i),1:end-1),m,m),[50, 150])
-    subplot(10,10,i+50), imshow(reshape(neg_patches(neg_indices(i),1:end-1),m,m),[50, 150])
+if plot
+    for i = 1:50
+        subplot(10,10,i), imshow(reshape(pos_patches(pos_indices(i),1:end-1),m,m),[50, 150])
+        subplot(10,10,i+50), imshow(reshape(neg_patches(neg_indices(i),1:end-1),m,m),[50, 150])
+    end
 end
