@@ -16,7 +16,7 @@ labelsrot = zeros(1, num_rotations*num_images);
 for i = 1:num_rotations
     angle = 360/num_rotations * (i-1);
     for img = 1:num_images
-        imgsrot(:,:,(img-1)*num_rotations + i) = imrotate(reshape(imgs(:,img),width,height),angle,'nearest','crop');
+        imgsrot(:,:,(img-1)*num_rotations + i) = imrotate(reshape(imgs(:,img),width,height),angle,'bilinear','crop');
         labelsrot(1,(img-1)*num_rotations + i) = labels(img);
     end
 end

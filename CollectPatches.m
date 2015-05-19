@@ -4,14 +4,17 @@ function [pos_patches, neg_patches] = CollectPatches(m, plot)
 % and patches with background
 
 fileList = dir('labels/*.csv');
-fileList = {fileList.name}'
+fileList = {fileList.name}';
 
 %patches m x m pixels
 
-d = (m-1)/2
+d = (m-1)/2;
 
-bias = 10
-k = (512 - 2*d)/bias
+fprintf('collecting patches...\n');
+
+bias = 10;
+
+k = (512 - 2*d)/bias;
 
 pos_patches = zeros(5000,m*m + 1);
 neg_patches = zeros(5000,m*m + 1);
@@ -19,7 +22,8 @@ pos_counter = 1;
 neg_counter = 1;
 
 for i = 1:numel(fileList)
-    name = fileList{i}(1:end-4)
+    name = fileList{i}(1:end-4);
+    fprintf('processing %s\n',name);
     image = imread(['images/' name '.tif']);
     f = fopen(['labels/' name '.csv'],'r');
     centers = zeros(5000,2);
@@ -54,8 +58,6 @@ for i = 1:numel(fileList)
     end
 end
 
-pos_counter
-neg_counter
 pos_patches = pos_patches(1:pos_counter-1,:);
 neg_patches = neg_patches(1:neg_counter-1,:);
 pos_indices = randsample(pos_counter-1,50);

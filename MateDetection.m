@@ -2,21 +2,34 @@ function MateDetection
 %demonstrates Mate on MNIST
 %example is derived from the analogous MatConvNet example
 
-m = 29
+m = 29;
+fprintf('sample height/width is %d\n',m);
 
 [pos_patches, neg_patches] = CollectPatches(m, false);
-n_pos = size(pos_patches,1)
-n_neg = size(neg_patches,1)
+n_pos = size(pos_patches,1);
+fprintf('number of positives %d\n',n_pos);
+n_neg = size(neg_patches,1);
+fprintf('number of negatives %d\n',n_neg);
 
 n = n_pos + n_neg;
 
 data = cat(1, pos_patches, neg_patches);
 num_rotations = 10;
-n = n * num_rotations
+n = n * num_rotations;
+
+fprintf('rotating images\n');
 data = MakeMultipleRotations( data' , num_rotations );
 data = datasample(data, n, 2);
 labels = data(end,:);
 data = data(1:end-1,:);
+
+%visualization
+indices = randsample(n,20);
+
+for i = 1:20
+    subplot(4,5,i), imshow(reshape(data(:,indices(i)),m,m),[50, 150])
+end
+drawnow
 
 dataset = struct;
 dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
@@ -69,7 +82,7 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs',100, 'continue', false, 'expDir', expDir,...
+     'numEpochs',15, 'continue', false, 'expDir', expDir,...
      'learningRate', 0.001,'monitor', {'loss','error'},...
      'showLayers', 'conv1') ;
 
