@@ -8,18 +8,30 @@ m = 29
 n_pos = size(pos_patches,1)
 n_neg = size(neg_patches,1)
 
-n = n_pos + n_neg;
-
-data = cat(1, pos_patches, neg_patches);
+data = cat(1, pos_patches, neg_patches)';
 num_rotations = 10;
-n = n * num_rotations
-data = MakeMultipleRotations( data' , num_rotations );
+% data = MakeMultipleRotations( data , num_rotations );
+
+n = size(data,2);
 data = datasample(data, n, 2);
+n = size(data,2);
 labels = data(end,:);
 data = data(1:end-1,:);
 
+% averaging the data
+mean_image = mean(data,2);
+data = data - mean_image * ones(size(data,2),1)';
+
+mean_image = reshape(mean_image,m,m);
+save('exp/train_params.mat', 'mean_image');
+
 dataset = struct;
 dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
+
+for i = 1:49
+    subplot(7,7,i), imshow(reshape(dataset.imdb.images.data(:,:,:,randi(n)),m,m), [-120,120]);
+end
+
 dataset.imdb.images.labels = labels ;
 dataset.imdb.images.set = [ones(1,n - 500) 3*ones(1, 500)] ;
 dataset.imdb.meta.sets = {'train', 'val', 'test'} ;
@@ -69,7 +81,7 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs',10, 'continue', false, 'expDir', expDir,...
+     'numEpochs', 7, 'continue', false, 'expDir', expDir,...
      'learningRate', 0.001,'monitor', {'loss','error'},...
      'showLayers', 'conv1') ;
 
