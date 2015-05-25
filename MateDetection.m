@@ -5,29 +5,30 @@ function [net,info,dataset] = MateDetection
 m = 29
 
 [pos_patches, neg_patches] = CollectPatches(m, false);
-n_pos = size(pos_patches,1)
-n_neg = size(neg_patches,1)
+n_pos = size(pos_patches,1);
+fprintf('number of positives %d\n',n_pos);
+n_neg = size(neg_patches,1);
+fprintf('number of negatives %d\n',n_neg);
 
 data = cat(1, pos_patches, neg_patches)';
 num_rotations = 10;
-% data = MakeMultipleRotations( data , num_rotations );
+data = MakeMultipleRotations( data , num_rotations );
 
 n = size(data,2);
 data = datasample(data, n, 2);
 n = size(data,2);
 labels = data(end,:);
 data = data(1:end-1,:);
-
-% averaging the data
-mean_image = mean(data,2);
-data = data - mean_image * ones(size(data,2),1)';
-
-mean_image = reshape(mean_image,m,m);
-save('exp/train_params.mat', 'mean_image');
+fprintf('number of samples after augmentation %d\n',n);
 
 dataset = struct;
 dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
 
+% averaging the data
+mean_image = mean(dataset.imdb.images.data,4);
+dataset.imdb.images.data = bsxfun(@minus, dataset.imdb.images.data, mean_image);
+save('exp/train_params.mat', 'mean_image');
+        
 for i = 1:49
     subplot(7,7,i), imshow(reshape(dataset.imdb.images.data(:,:,:,randi(n)),m,m), [-120,120]);
 end
@@ -60,6 +61,7 @@ net = MateNet( {
                 'weightDecay', [0.005 0.005], 'name','prediction')
   MateSoftmaxLossLayer('name','loss',...
                 'takes',{'prediction','input:2'})
+  MateSoftmaxLayer('name','softmax','takes','prediction','skipBackward',1)
   MateMultilabelErrorLayer('name','error',...
                 'takes',{'prediction','input:2'})
   } );
@@ -81,7 +83,7 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs', 7, 'continue', false, 'expDir', expDir,...
+     'numEpochs',15, 'continue', false, 'expDir', expDir,...
      'learningRate', 0.001,'monitor', {'loss','error'},...
      'showLayers', 'conv1') ;
 

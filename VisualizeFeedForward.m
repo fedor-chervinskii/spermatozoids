@@ -10,10 +10,9 @@ size(patches)
 load('exp/train_params.mat');
 
 % subtracting the average
-patches = patches - reshape(repmat(mean_image,size(patches,4),1),m,m,1,[]);
-
+patches = bsxfun(@minus, patches, mean_image);
 net = net.makePass({single(patches); single(zeros(2, num_patches))});
-prediction = net.getBlob('prediction');
+prediction = net.getBlob('softmax');
 
 [~, order] = sort(prediction(1,:));
 
