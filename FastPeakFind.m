@@ -78,7 +78,7 @@ if (nargin < 2)
 end
 
 if (nargin < 3)
-    filt = (fspecial('gaussian', 7,1)); %if needed modify the filter according to the expected peaks sizes
+    filt = (fspecial('gaussian', 2 ,1)); %if needed modify the filter according to the expected peaks sizes
 end
 
 if (nargin < 4)
