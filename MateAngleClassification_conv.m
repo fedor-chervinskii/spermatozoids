@@ -1,12 +1,9 @@
-function [net,info,dataset] = MateDetection_conv
-%demonstrates Mate on MNIST
+function [net,info,dataset] = MateAngleClassification_conv
 %example is derived from the analogous MatConvNet example
 
 m = 29
 
-num_orient_classes = 4
-
-[pos_patches, neg_patches] = CollectPatches(m, false);
+[pos_patches, neg_patches] = CollectPatches(m, false, true);
 n_pos = size(pos_patches,1);
 fprintf('number of positives %d\n',n_pos);
 n_neg = size(neg_patches,1);
@@ -19,7 +16,7 @@ data = MakeMultipleRotations( data , num_rotations );
 n = size(data,2);
 data = datasample(data, n, 2);
 n = size(data,2);
-labels = round(data(end,:)./(360/num_orient_classes) + 0.5);
+labels = data(end,:);
 data = data(1:end-1,:);
 fprintf('number of samples after augmentation %d\n',n);
 
@@ -59,7 +56,7 @@ net = MateNet( {
   MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
   MateReluLayer
-  MateConvLayer(f*randn(1,1,500,num_orient_classes+1, 'single'), zeros(1, num_orient_classes+1, 'single'),... 
+  MateConvLayer(f*randn(1,1,500,2, 'single'), zeros(1, 2, 'single'),... 
                 'weightDecay', [0.005 0.005], 'name','prediction')
   MateSoftmaxLossLayer('name','loss',...
                 'takes',{'prediction','input:2'})
@@ -95,7 +92,6 @@ function [x, eoe, dataset] = getBatch(istrain, batchNo, dataset)
 eoe=false;
 batchStart = batchNo*dataset.batchSize+1;
 batchEnd = (batchNo+1)*dataset.batchSize;
-num_orient_classes = 4;
 
 if istrain
   if batchEnd >= numel(dataset.train)
@@ -113,7 +109,7 @@ end
 
 x{1} = dataset.imdb.images.data(:,:,:,batch) ;
 labels = dataset.imdb.images.labels(batch) ;
-x{2} = zeros([1 1 num_orient_classes+1 numel(batch)],'single');
+x{2} = zeros([1 1 2 numel(batch)],'single');
 x{2}(sub2ind(size(x{2}), ones(numel(batch),1), ones(numel(batch),1), labels(:) + 1,(1:numel(batch))')) = single(1);
 
 function [net,dataset,learningRate] = onEpochEnd(net,dataset,learningRate)

@@ -1,4 +1,4 @@
-function imgsrot = MakeMultipleRotations(imgs, num_rotations);
+function imgsrot = MakeMultipleRotations(imgs, num_rotations, num_orient_classes);
 
 width = 29;
 height = 29;
@@ -17,7 +17,9 @@ for i = 1:num_rotations
     angle = 360/num_rotations * (i-1);
     for img = 1:num_images
         imgsrot(:,:,(img-1)*num_rotations + i) = imrotate(reshape(imgs(:,img),width,height),angle,'bilinear','crop');
-        labelsrot(1,(img-1)*num_rotations + i) = labels(img);
+        orig_angle = labels(img);
+        new_angle = rem(orig_angle+angle,360);
+        labelsrot(1,(img-1)*num_rotations + i) = new_angle*(orig_angle >= 0) - (orig_angle < 0);
     end
 end
 
