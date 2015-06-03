@@ -2,20 +2,10 @@ function [net,info,dataset] = MateDetection_conv
 %demonstrates Mate on MNIST
 %example is derived from the analogous MatConvNet example
 
-m = 29
+m = 29;
 
-[pos_patches, neg_patches] = CollectPatches(m, false);
-n_pos = size(pos_patches,1);
-fprintf('number of positives %d\n',n_pos);
-n_neg = size(neg_patches,1);
-fprintf('number of negatives %d\n',n_neg);
-
-data = cat(1, pos_patches, neg_patches)';
-num_rotations = 10;
-data = MakeMultipleRotations( data , num_rotations );
-
-n = size(data,2);
-data = datasample(data, n, 2);
+data = CollectPatchesWithRotations(m, 24);
+data = data(randperm(size(data, 1)), :)';
 n = size(data,2);
 labels = data(end,:);
 data = data(1:end-1,:);
@@ -31,7 +21,8 @@ dataset.imdb.images.data = dataset.imdb.images.data - 122;
 %save('exp/train_params.mat', 'mean_image');
         
 for i = 1:49
-    subplot(7,7,i), imshow(reshape(dataset.imdb.images.data(:,:,:,randi(n)),m,m), [-120,120]);
+    j = randi(n);
+    subplot(7,7,i), imshow(reshape(dataset.imdb.images.data(:,:,:,j),m,m), [-120,120]), title(labels(j));
 end
 
 dataset.imdb.images.labels = labels ;
