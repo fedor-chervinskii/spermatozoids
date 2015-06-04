@@ -28,10 +28,11 @@ function [centers, labels] = GetCentersOfTrainPatches(m, name)
         A = sscanf(tline, '%f,%f;%f,%f');
         Xc = round(A(3));
         Yc = round(A(1));
+        angle = atan2d(A(4)-A(3),A(2)-A(1))+180;
         point = [Xc Yc];
         if IsInternalPoint(m, point)
             centers(cur_counter,:) = point;
-            labels(cur_counter) = 1;
+            labels(cur_counter) = angle;
             cur_counter = cur_counter + 1;
         end
         tline = fgetl(f);   
@@ -40,12 +41,12 @@ function [centers, labels] = GetCentersOfTrainPatches(m, name)
     %collect negative centers
     centersKDT = KDTreeSearcher(centers);
     
-    for Xc = round(linspace(1+d,512-d,50))
-        for Yc = round(linspace(1+d,512-d,50))
+    for Xc = round(linspace(1+d,512-d,60))
+        for Yc = round(linspace(1+d,512-d,60))
             idx = knnsearch(centersKDT, [Xc, Yc]);
             if (centers(idx, 1) - Xc >= 4) && (centers(idx, 2) - Yc >= 4)
                 centers(cur_counter,:) = [Xc, Yc];
-                labels(cur_counter) = 0;
+                labels(cur_counter) = -1;
                 cur_counter = cur_counter + 1;
             end        
         end
@@ -71,7 +72,15 @@ function [patches] = GetAllRotationsForTrainPatches(m, image,...
             if IsInternalPoint(m, rotated_center)
                 num_collected_patches = num_collected_patches + 1;
                 patches(num_collected_patches, 1:m^2) = reshape(rotated_image(rotated_center(1)-d:rotated_center(1)+d, rotated_center(2)-d:rotated_center(2)+d)', m^2, 1);
-                patches(num_collected_patches, m^2+1) = label;
+                if label >= 0
+                    % has a spermatozoon, label = angle
+                    orig_angle = label;
+                    new_angle = rem(orig_angle-angle+360,360);
+                    new_label = new_angle;
+                else
+                    new_label = -1;
+                end
+                patches(num_collected_patches, m^2+1) = new_label;
             end
         end
     end
