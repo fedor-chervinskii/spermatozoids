@@ -8,13 +8,13 @@ fileList = {fileList.name}';
 
 %patches m x m pixels
 
-d = (m-1)/2;
+d = m/2;
 
 fprintf('collecting patches...\n');
 
 bias = 10;
 
-k = (512 - 2*d)/bias;
+k = (512 - 2*d + 1)/bias;
 
 pos_patches = zeros(5000,m*m + 1);
 neg_patches = zeros(5000,m*m + 1);
@@ -31,12 +31,12 @@ for i = 1:numel(fileList)
     cur_counter = 1;
     while ischar(tline)
         A = sscanf(tline, '%f,%f;%f,%f');
-        Xc = round(A(3));
-        Yc = round(A(1));
+        Yc = round(A(3));
+        Xc = round(A(1));
         angle = atan2d(A(4)-A(3),A(2)-A(1))+180;
-        centers(cur_counter,:) = [Xc, Yc];
-        if (Xc+d <= 512) && (Xc-d >= 1) && (Yc+d <= 512) && (Yc-d >= 1)
-            pos_patches(pos_counter,1:end-1) = reshape(image(Xc-d:Xc+d,Yc-d:Yc+d),1,m*m);
+        centers(cur_counter,:) = [Yc, Xc];
+        if (Yc+d-1 <= 512) && (Yc-d >= 1) && (Xc+d-1 <= 512) && (Xc-d >= 1)
+            pos_patches(pos_counter,1:end-1) = reshape(image(Yc-d:Yc+d-1,Xc-d:Xc+d-1),1,[]);
             if orient
                 pos_patches(pos_counter,end) = angle;
             else
@@ -51,11 +51,11 @@ for i = 1:numel(fileList)
     
     centersKDT = KDTreeSearcher(centers);
     
-    for Xc = round(linspace(1+d,512-d,k))
-        for Yc = round(linspace(1+d,512-d,k))
-            idx = knnsearch(centersKDT, [Xc, Yc]);
-            if (centers(idx, 1) - Xc >= 4) && (centers(idx, 2) - Yc >= 4)
-                neg_patches(neg_counter,1:end-1) = reshape(image(Xc-d:Xc+d,Yc-d:Yc+d),1,m*m);
+    for Yc = round(linspace(1+d,512-d,k))
+        for Xc = round(linspace(1+d,512-d,k))
+            idx = knnsearch(centersKDT, [Yc, Xc]);
+            if (centers(idx, 1) - Yc >= 4) && (centers(idx, 2) - Xc >= 4)
+                neg_patches(neg_counter,1:end-1) = reshape(image(Yc-d:Yc+d-1,Xc-d:Xc+d-1),1,m*m);
                 neg_patches(neg_counter,end) = -1;
                 neg_counter = neg_counter + 1;
             end        

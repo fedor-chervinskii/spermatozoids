@@ -1,53 +1,30 @@
-function [net,info,dataset] = MateDetection_conv
-%demonstrates Mate on MNIST
-%example is derived from the analogous MatConvNet example
+function [class_net,info,dataset] = MateDetection_conv
 
-m = 29;
-num_orient_classes = 4;
+m = 28;
 
-data = CollectPatchesWithRotations(m, 12);
-data = data(randperm(size(data, 1)), :)';
-n = size(data,2);
+if 0
+    data = CollectPatchesWithRotations(m, 12);
+    data = data(randperm(size(data, 1)), :)';
+    n = size(data,2);
 
-labels = data(end,:);
-data = data(1:end-1,:);
+    angles = data(end,:);
+    data = data(1:end-1,:);
 
-items = randsample(find(labels >= 0), 45);
-[~, indices] = sort(labels(items));
-for i = 0:4
-    for j = 1:9
-        index = i*9+j;
-        item = items(indices(index));
-        subplot(num_orient_classes+1,9,i*9+j), ...
-            imshow(reshape(data(:,item),m,m), ...
-            [0 240]), title(labels(item));
-    end
+    fprintf('number of samples after augmentation %d\n',n);
+
+    dataset = struct;
+    dataset.imdb.images.angles = angles;
+    dataset.imdb.images.labels = round(angles./360 + 0.5);
+    dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
+
+    dataset.imdb.images.data = dataset.imdb.images.data - 122;
+
+    save('exp/dataset.mat', 'dataset');
 end
+load('exp/dataset.mat')
+n = size(dataset.imdb.images.labels,2);
 
-labels = round(labels./(360/num_orient_classes) + 0.5);
-
-fprintf('number of samples after augmentation %d\n',n);
-
-dataset = struct;
-dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
-
-% averaging the data
-%mean_image = mean(dataset.imdb.images.data,4);
-%dataset.imdb.images.data = bsxfun(@minus, dataset.imdb.images.data, mean_image);
-dataset.imdb.images.data = dataset.imdb.images.data - 122;
-%save('exp/train_params.mat', 'mean_image');
-        
-for i = 0:num_orient_classes
-    for j = 1:9
-        item = randsample(find(labels == i), 1);
-        subplot(num_orient_classes+1,9,i*9+j), ...
-            imshow(reshape(dataset.imdb.images.data(:,:,:,item),m,m), ...
-            [-120,120]), title(labels(item));
-    end
-end
-
-dataset.imdb.images.labels = labels ;
-dataset.imdb.images.set = [ones(1,n - 500) 3*ones(1, 500)] ;
+dataset.imdb.images.set = [ones(1,n - 1000) 3*ones(1, 1000)] ;
 dataset.imdb.meta.sets = {'train', 'val', 'test'} ;
 dataset.imdb.meta.classes = arrayfun(@(x)sprintf('%d',x),0:1,'uniformoutput',false) ;
 
@@ -69,20 +46,13 @@ net = MateNet( {
   MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
   MateReluLayer
-  MateConvLayer(f*randn(1,1,500,num_orient_classes+1, 'single'), ...
-                zeros(1, num_orient_classes+1, 'single'), ...
+  MateConvLayer(f*randn(1,1,500,2, 'single'), ...
+                zeros(1, 2, 'single'), ...
                 'weightDecay', [0.005 0.005], 'name','prediction')
-  MateSoftmaxLossLayer('name','loss',...
+  MateLogisticLossLayer('name','loss',...
                 'takes',{'prediction','input:2'})
-  MateSoftmaxLayer('name','softmax','takes','prediction','skipBackward',1)
-  MateMultilabelErrorLayer('name','error',...
-                'takes',{'prediction','input:2'})
-  } );
-
-
-%subtract mean
-dataset.imdb.images.data = bsxfun(@minus, dataset.imdb.images.data,...
-            mean(dataset.imdb.images.data,4)) ;
+} );
+ 
           
 %move to GPU         
 if useGpu
@@ -96,9 +66,12 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs',20, 'continue', false, 'expDir', expDir,...
-     'learningRate', 0.001,'monitor', {'loss','error'},...
+     'numEpochs',30, 'continue', false, 'expDir', expDir,...
+     'learningRate', 0.005,'monitor', {'loss'},...
      'showLayers', 'conv1', 'onEpochEnd', @onEpochEnd) ;
+
+class_net = net;
+save('exp/class_net.mat', 'class_net');
 
 %----------------------------------------------------------%
 
@@ -106,7 +79,6 @@ function [x, eoe, dataset] = getBatch(istrain, batchNo, dataset)
 eoe=false;
 batchStart = batchNo*dataset.batchSize+1;
 batchEnd = (batchNo+1)*dataset.batchSize;
-num_orient_classes = 4;
 
 if istrain
   if batchEnd >= numel(dataset.train)
@@ -124,8 +96,8 @@ end
 
 x{1} = dataset.imdb.images.data(:,:,:,batch) ;
 labels = dataset.imdb.images.labels(batch) ;
-x{2} = zeros([1 1 num_orient_classes+1 numel(batch)],'single');
-x{2}(sub2ind(size(x{2}), ones(numel(batch),1), ones(numel(batch),1), labels(:) + 1,(1:numel(batch))')) = single(1);
+x{2} = zeros([1 1 1 numel(batch)],'single');
+x{2}(1,1,1,:) = labels(:)*2 - 1;
 
 function [net,dataset,learningRate] = onEpochEnd(net,dataset,learningRate)
 

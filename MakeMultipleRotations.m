@@ -1,7 +1,7 @@
-function imgsrot = MakeMultipleRotations(imgs, num_rotations, num_orient_classes);
+function imgsrot = MakeMultipleRotations(imgs, num_rotations, m);
 
-width = 29;
-height = 29;
+width = m;
+height = m;
 
 labels = imgs(end,:);
 imgs = imgs(1:end-1,:);

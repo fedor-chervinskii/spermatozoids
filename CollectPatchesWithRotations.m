@@ -17,7 +17,7 @@ end
 
 
 function [centers, labels] = GetCentersOfTrainPatches(m, name)
-    d = (m-1)/2;
+    d = floor(m/2);
 
     f = fopen(['labels/' name '.csv'],'r');
     centers = zeros(5000,2);
@@ -61,7 +61,7 @@ function [patches] = GetAllRotationsForTrainPatches(m, image,...
         num_rotations, centers, labels)
     patches = zeros(size(centers, 1) * num_rotations, m^2+1);
     num_collected_patches = 0;
-    d = (m-1)/2;
+    d = floor(m/2);
     for pair = [centers'; labels']
         center = pair(1:2);
         label = pair(3);
@@ -71,7 +71,7 @@ function [patches] = GetAllRotationsForTrainPatches(m, image,...
             rotated_center = FindPointAfterImrotate(image, angle, center(1), center(2));
             if IsInternalPoint(m, rotated_center)
                 num_collected_patches = num_collected_patches + 1;
-                patches(num_collected_patches, 1:m^2) = reshape(rotated_image(rotated_center(1)-d:rotated_center(1)+d, rotated_center(2)-d:rotated_center(2)+d)', m^2, 1);
+                patches(num_collected_patches, 1:m^2) = reshape(rotated_image(rotated_center(1)-d:rotated_center(1)+d-1, rotated_center(2)-d:rotated_center(2)+d-1)', m^2, 1);
                 if label >= 0
                     % has a spermatozoon, label = angle
                     orig_angle = label;
