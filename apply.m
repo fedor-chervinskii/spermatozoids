@@ -5,6 +5,7 @@ d = floor(m/2)
 
 load('exp/det_net.mat')
 load('exp/regr_net.mat')
+load('exp/bi_net.mat')
 
 % 1. Open the new unlabeled image
 image = single(imread(filename));
@@ -29,7 +30,7 @@ for i = 1:4
     end
 end
 
-[y, x] = nonmaxsuppts(prob_map(:,:,1), 4, 0.8);
+[y, x] = nonmaxsuppts(prob_map(:,:), 4, 0.4);
 
 im_x = x + 14;
 im_y = y + 14;
@@ -44,16 +45,23 @@ for i = 1:n_centers
     patches(:,:,1,i) = image(Yc-d:Yc+d-1,Xc-d:Xc+d-1);
 end
 
-mean_image = 122;
-patches = bsxfun(@minus, patches, mean_image);
 regr_net = regr_net.makePass({single(patches); single(zeros(1,1,2,n_centers))});
 prediction = regr_net.getBlob('prediction');
-angles = atan2d(prediction(1,:),prediction(2,:))+180;
+angles = atan2d(prediction(1,:),prediction(2,:));
 angles = angles./2;
 
+rotated_patches = zeros(m,m,1,n_centers);
+
 for i = 1:n_centers
-    vector = [-cosd(angles(i)) sind(angles(i))]*5;
-    line([im_x(i)-vector(1) im_x(i)+vector(1)],[im_y(i)-vector(2) im_y(i)+vector(2)]);
+    rotated_patches(:,:,1,i) = imrotate(patches(:,:,1,i), -angles(i), 'bilinear', 'crop');;
 end
-scatter(im_x, im_y, 4,'r')
+bi_net = bi_net.makePass({single(patches); single(zeros(1,1,1,n_centers))});
+prediction = bi_net.getBlob('prediction');
+k = [squeeze(prediction) > 0]*2-1;
+
+for i = 1:n_centers
+    vector = [cosd(angles(i)) -sind(angles(i))]*k(i)*7;
+    line([im_x(i) im_x(i)+vector(1)],[im_y(i) im_y(i)+vector(2)],'Linewidth',4);
+end
+plot(im_x, im_y,'r.', 'MarkerSize',20)
 

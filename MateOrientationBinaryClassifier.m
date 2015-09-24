@@ -1,13 +1,25 @@
-function [regr_net,info,dataset] = MateAngleRegression()
+function [bi_net,info,dataset] = MateOrientationBinaryClassifier()
 %example is derived from the analogous MatConvNet example
-
-load('exp/dataset.mat')
 
 m = 28
 
-labels = dataset.imdb.images.labels;
-dataset.imdb.images.data = dataset.imdb.images.data(:,:,:,labels > 0);
-dataset.imdb.images.angles = dataset.imdb.images.angles(labels > 0);
+data = CollectPatchesWithRotations('labels/train/','images/train/', m, 2, true);
+data = data(data(:, end) >= 0, :); %only positive patches
+data = data(randperm(size(data, 1)), :)';
+n = size(data,2);
+
+angles = data(end,:);
+data = data(1:end-1,:);
+
+fprintf('number of samples after augmentation %d\n',n);
+
+dataset = struct;
+dataset.imdb.images.angles = angles;
+dataset.imdb.images.labels = round(angles./180 + 0);
+dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
+%dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
+
+dataset.imdb.images.data = dataset.imdb.images.data - 122;
 
 n = size(dataset.imdb.images.angles,2);
 
@@ -23,20 +35,12 @@ useGpu = false;
 f=1/100 ;
 
 net = MateNet( {
-  MateConvLayer(f*randn(5,5,1,20, 'single'), zeros(1, 20, 'single'), ...
-                'stride', 1, 'pad', 0, 'name', 'conv1')
-  MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)
-  MateConvLayer(f*randn(5,5,20,50, 'single'), zeros(1, 50, 'single'), ...
-                'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])
-  MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)  
-  MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
-                'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
+  MateFlattenLayer()
+  MateFullLayer(f*randn(400, 784, 'single'), zeros(400, 1, 'single'))
   MateReluLayer
-  MateConvLayer(f*randn(1,1,500,2, 'single'), zeros(1, 2, 'single'),... 
-                'weightDecay', [0.005 0.005])
-  MateSqueezeLayer
-  MateL2NormalizeLayer('name','prediction')
-  MateL2LossLayer('name','loss',...
+  MateFullLayer(f*randn(1, 400, 'single'), zeros(1, 1, 'single'),... 
+                'name', 'prediction')
+  MateLogisticLossLayer('name','loss',...
                 'takes',{'prediction','input:2'})
   } );
 
@@ -58,11 +62,11 @@ dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
      'numEpochs',20, 'continue', false, 'expDir', expDir,...
-     'learningRate', 0.001, 'monitor', {'loss'},...
+     'learningRate', 0.01, 'monitor', {'loss'},...
      'onEpochEnd', @onEpochEnd) ;
 
-regr_net = net;
-save('exp/regr_net.mat', 'regr_net');
+bi_net = net;
+save('exp/bi_net.mat', 'bi_net');
 
 %----------------------------------------------------------%
 
@@ -86,10 +90,9 @@ else
 end
 
 x{1} = dataset.imdb.images.data(:,:,:,batch) ;
-labels = mod(dataset.imdb.images.angles(batch),180);
-x{2} = zeros([2 numel(batch)],'single');
-x{2}(1,:) = sind(2*labels);
-x{2}(2,:) = cosd(2*labels);
+labels = dataset.imdb.images.labels(batch) ;
+x{2} = zeros([1 numel(batch)],'single');
+x{2}(1,:) = labels(:)*2 - 1;
 
 function [net,dataset,learningRate] = onEpochEnd(net,dataset,learningRate)
 1;

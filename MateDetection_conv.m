@@ -2,8 +2,8 @@ function [class_net,info,dataset] = MateDetection_conv
 
 m = 28;
 
-if 0
-    data = CollectPatchesWithRotations(m, 12);
+if 1
+    data = CollectPatches('labels/centers/train/','images/train/', m, 1, false, false);
     data = data(randperm(size(data, 1)), :)';
     n = size(data,2);
 
@@ -20,9 +20,10 @@ if 0
     dataset.imdb.images.data = dataset.imdb.images.data - 122;
 
     save('exp/dataset.mat', 'dataset');
+else
+    load('exp/dataset.mat')
 end
-load('exp/dataset.mat')
-n = size(dataset.imdb.images.labels,2);
+n = size(dataset.imdb.images.labels,2)
 
 dataset.imdb.images.set = [ones(1,n - 1000) 3*ones(1, 1000)] ;
 dataset.imdb.meta.sets = {'train', 'val', 'test'} ;
@@ -46,8 +47,8 @@ net = MateNet( {
   MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
   MateReluLayer
-  MateConvLayer(f*randn(1,1,500,2, 'single'), ...
-                zeros(1, 2, 'single'), ...
+  MateConvLayer(f*randn(1,1,500,1, 'single'), ...
+                zeros(1, 1, 'single'), ...
                 'weightDecay', [0.005 0.005], 'name','prediction')
   MateLogisticLossLayer('name','loss',...
                 'takes',{'prediction','input:2'})
@@ -70,8 +71,8 @@ dataset.batchSize = 100;
      'learningRate', 0.005,'monitor', {'loss'},...
      'showLayers', 'conv1', 'onEpochEnd', @onEpochEnd) ;
 
-class_net = net;
-save('exp/class_net.mat', 'class_net');
+det_net = net;
+save('exp/det_net.mat', 'det_net');
 
 %----------------------------------------------------------%
 
@@ -100,5 +101,5 @@ x{2} = zeros([1 1 1 numel(batch)],'single');
 x{2}(1,1,1,:) = labels(:)*2 - 1;
 
 function [net,dataset,learningRate] = onEpochEnd(net,dataset,learningRate)
-
-learningRate = 0.9 * learningRate;
+1;
+%learningRate = 0.9 * learningRate;

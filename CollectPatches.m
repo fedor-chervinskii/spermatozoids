@@ -1,75 +1,112 @@
-function [pos_patches, neg_patches] = CollectPatches(m, plot)
+function [ patches ] = CollectPatches(labels_dir, imgs_dir, m, ...
+                                num_rotations, getAngle, firstZero)
+    fileList = dir([labels_dir '*.csv']);
+    fileList = {fileList.name}';
 
-%function collects patches with spermatozoids at the center
-% and patches with background
+    patches = [];
 
-fileList = dir('labels/*.csv');
-fileList = {fileList.name}';
+    for i = 1:numel(fileList)
+        name = fileList{i}(1:end-4);
+        fprintf('processing %s\n',name);
+        image = imread([imgs_dir name '.tif']);
 
-%patches m x m pixels
+        [centers, labels] = GetCentersOfPatches(m, getAngle, [labels_dir name]);
+        patches = [patches; GetAugmentedPatches(m, image,...
+            num_rotations, firstZero, centers, labels)];
+    end
+end
 
-d = m/2;
 
-fprintf('collecting patches...\n');
+function [centers, labels] = GetCentersOfPatches(m, getAngle, name)
+    d = floor(m/2);
 
-bias = 10;
-
-k = (512 - 2*d + 1)/bias;
-
-pos_patches = zeros(5000,m*m + 1);
-neg_patches = zeros(5000,m*m + 1);
-pos_counter = 1;
-neg_counter = 1;
-
-for i = 1:numel(fileList)
-    name = fileList{i}(1:end-4);
-    fprintf('processing %s\n',name);
-    image = imread(['images/' name '.tif']);
-    f = fopen(['labels/' name '.csv'],'r');
+    f = fopen([name '.csv'],'r');
     centers = zeros(5000,2);
+    labels = zeros(5000,1);
     tline = fgetl(f);
     cur_counter = 1;
     while ischar(tline)
-        A = sscanf(tline, '%f,%f;%f,%f');
-        Yc = round(A(3));
-        Xc = round(A(1));
-        angle = atan2d(A(4)-A(3),A(2)-A(1))+180;
-        centers(cur_counter,:) = [Yc, Xc];
-        if (Yc+d-1 <= 512) && (Yc-d >= 1) && (Xc+d-1 <= 512) && (Xc-d >= 1)
-            pos_patches(pos_counter,1:end-1) = reshape(image(Yc-d:Yc+d-1,Xc-d:Xc+d-1),1,[]);
-            if orient
-                pos_patches(pos_counter,end) = angle;
-            else
-                pos_patches(pos_counter,end) = 1;
-            end
-            pos_counter = pos_counter + 1;
+        if getAngle
+            A = sscanf(tline, '%f,%f;%f,%f'); 
+            Xc = round(A(3));
+            Yc = round(A(1));
+            angle = atan2d(A(4)-A(3),A(1)-A(2))+180;
+            point = [Xc Yc];
+        else
+            A = sscanf(tline, '%f,%f'); 
+            Xc = round(A(2));
+            Yc = round(A(1));
+            angle = 0;
+            point = [Xc Yc];
+        end
+        if IsInternalPoint(m, point)
+            centers(cur_counter,:) = point;
+            labels(cur_counter) = angle;
             cur_counter = cur_counter + 1;
         end
         tline = fgetl(f);   
     end
-    %collect negative patches
-    
+    %collect negative centers
     centersKDT = KDTreeSearcher(centers);
     
-    for Yc = round(linspace(1+d,512-d,k))
-        for Xc = round(linspace(1+d,512-d,k))
-            idx = knnsearch(centersKDT, [Yc, Xc]);
-            if (centers(idx, 1) - Yc >= 4) && (centers(idx, 2) - Xc >= 4)
-                neg_patches(neg_counter,1:end-1) = reshape(image(Yc-d:Yc+d-1,Xc-d:Xc+d-1),1,m*m);
-                neg_patches(neg_counter,end) = -1;
-                neg_counter = neg_counter + 1;
+    for Xc = round(linspace(1+d,512-d,60))
+        for Yc = round(linspace(1+d,512-d,60))
+            idx = knnsearch(centersKDT, [Xc, Yc]);
+            if (centers(idx, 1) - Xc >= 4) && (centers(idx, 2) - Yc >= 4)
+                centers(cur_counter,:) = [Xc, Yc];
+                labels(cur_counter) = -1;
+                cur_counter = cur_counter + 1;
             end        
         end
     end
+    
+    centers = centers(1:cur_counter-1,:);
+    labels = labels(1:cur_counter-1,:);
 end
 
-pos_patches = pos_patches(1:pos_counter-1,:);
-neg_patches = neg_patches(1:neg_counter-1,:);
-pos_indices = randsample(pos_counter-1,50);
-neg_indices = randsample(neg_counter-1,50);
-if plot
-    for i = 1:50
-        subplot(10,10,i), imshow(reshape(pos_patches(pos_indices(i),1:end-1),m,m),[50, 150])
-        subplot(10,10,i+50), imshow(reshape(neg_patches(neg_indices(i),1:end-1),m,m),[50, 150])
+
+function [patches] = GetAugmentedPatches(m, image,...
+        num_rotations, firstVertical, centers, labels)
+    [X, Y] = meshgrid(-2:2:2,-2:2:2);
+    biases = [X(:) Y(:)];
+    num_translations = size(biases, 1);
+    patches = zeros(size(centers, 1) * num_rotations * num_translations, m^2+1);
+    num_collected_patches = 0;
+    d = floor(m/2);
+    for pair = [centers'; labels']
+        center = pair(1:2);
+        label = pair(3);
+        for i = 0:num_rotations-1
+            angle = 360 / num_rotations * i;
+            if firstVertical
+                angle = angle - label;
+            end
+            rotated_image = imrotate(image, angle, 'bilinear', 'crop');
+            rotated_center = FindPointAfterImrotate(image, angle, center(1), center(2));
+            for j = 1:num_translations
+                updated_center = rotated_center + biases(j,:);
+                if IsInternalPoint(m, updated_center)
+                    num_collected_patches = num_collected_patches + 1;
+                    patches(num_collected_patches, 1:m^2) = reshape(rotated_image(updated_center(1)-d:updated_center(1)+d-1, updated_center(2)-d:updated_center(2)+d-1), m^2, 1);
+                    if label >= 0
+                        % has a spermatozoon, label = angle
+                        orig_angle = label;
+                        new_angle = rem(orig_angle+angle+360,360);
+                        new_label = new_angle;
+                    else
+                        new_label = -1;
+                    end
+                    patches(num_collected_patches, m^2+1) = new_label;
+                end
+            end  
+         end
     end
+    patches = patches(1:num_collected_patches, :);
+end
+
+
+function [result] = IsInternalPoint(m, point)
+d = (m-1)/2;
+result = (point(1)+d <= 512) && (point(1)-d >= 1) && ...
+    (point(2)+d <= 512) && (point(2)-d >= 1);
 end

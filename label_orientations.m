@@ -1,6 +1,6 @@
-name = 'C001H001S0001000001_3'
+name = 'train/C001H001S0001000001_1'
 figure, imshow(['images/' name '.tif']);
-f = fopen(['labels/' name '.csv'],'a+');
+f = fopen(['labels/orientations/' name '.csv'],'a+');
 frewind(f)
 tline = fgetl(f);
 while ischar(tline)
