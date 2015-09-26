@@ -1,9 +1,33 @@
 function [regr_net,info,dataset] = MateAngleRegression()
 %example is derived from the analogous MatConvNet example
 
-load('exp/dataset.mat')
+m = 28;
 
-m = 28
+if 1
+    num_rotations = 10;
+    getAngle = true;
+    firstZero = false;
+    data = CollectPatches('labels/orientations/train/','images/train/', m, ...
+                           num_rotations, getAngle, firstZero);
+    data = data(randperm(size(data, 1)), :)';
+    n = size(data,2);
+
+    angles = data(end,:);
+    data = data(1:end-1,:);
+
+    fprintf('number of samples after augmentation %d\n',n);
+
+    dataset = struct;
+    dataset.imdb.images.angles = angles;
+    dataset.imdb.images.labels = round(angles./360 + 0.5);
+    dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
+
+    dataset.imdb.images.data = dataset.imdb.images.data - 122;
+
+    save('exp/orient_dataset.mat', 'dataset');
+else
+    load('exp/orient_dataset.mat')
+end
 
 labels = dataset.imdb.images.labels;
 dataset.imdb.images.data = dataset.imdb.images.data(:,:,:,labels > 0);

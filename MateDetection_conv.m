@@ -1,9 +1,10 @@
-function [class_net,info,dataset] = MateDetection_conv
+function [class_net, info, dataset] = MateDetection_conv
 
 m = 28;
+num_rotations = 10;
 
 if 1
-    data = CollectPatches('labels/centers/train/','images/train/', m, 1, false, false);
+    data = CollectPatches('labels/centers/train/','images/train/', m, num_rotations, false, false);
     data = data(randperm(size(data, 1)), :)';
     n = size(data,2);
 

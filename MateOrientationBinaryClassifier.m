@@ -2,8 +2,12 @@ function [bi_net,info,dataset] = MateOrientationBinaryClassifier()
 %example is derived from the analogous MatConvNet example
 
 m = 28
+num_rotations = 2;
+getAngle = true;
+firstZero = true;
 
-data = CollectPatchesWithRotations('labels/train/','images/train/', m, 2, true);
+data = CollectPatches('labels/orientations/train/','images/train/', ...
+                                    m, num_rotations, getAngle, firstZero);
 data = data(data(:, end) >= 0, :); %only positive patches
 data = data(randperm(size(data, 1)), :)';
 n = size(data,2);
@@ -34,11 +38,21 @@ useGpu = false;
 
 f=1/100 ;
 
+load('exp/regr_net.mat')
 net = MateNet( {
-  MateFlattenLayer()
-  MateFullLayer(f*randn(400, 784, 'single'), zeros(400, 1, 'single'))
+  MateConvLayer(regr_net.layers{1,1}.weights.w{1,1}, ...
+                regr_net.layers{1,1}.weights.w{1,2}, ...
+                'stride', 1, 'pad', 0, 'name', 'conv1')
+  MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)
+  MateConvLayer(regr_net.layers{3,1}.weights.w{1,1}, ...
+                regr_net.layers{3,1}.weights.w{1,2}, ...
+                'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])
+  MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)  
+  MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
+                'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
   MateReluLayer
-  MateFullLayer(f*randn(1, 400, 'single'), zeros(1, 1, 'single'),... 
+  MateFlattenLayer()
+  MateFullLayer(f*randn(1, 500, 'single'), zeros(1, 1, 'single'),... 
                 'name', 'prediction')
   MateLogisticLossLayer('name','loss',...
                 'takes',{'prediction','input:2'})

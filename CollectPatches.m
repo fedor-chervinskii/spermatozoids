@@ -67,8 +67,9 @@ end
 
 function [patches] = GetAugmentedPatches(m, image,...
         num_rotations, firstVertical, centers, labels)
-    [X, Y] = meshgrid(-2:2:2,-2:2:2);
+    [X, Y] = meshgrid(-1:1:1,-1:1:1);
     biases = [X(:) Y(:)];
+    %biases = [0 0];
     num_translations = size(biases, 1);
     patches = zeros(size(centers, 1) * num_rotations * num_translations, m^2+1);
     num_collected_patches = 0;
