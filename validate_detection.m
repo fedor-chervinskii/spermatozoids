@@ -98,5 +98,5 @@ for i = 1:numel(metrics)
     plot(metrics{i});
     title(titles(i));
     legend(legends);
-    savefig(['images/val/' titles{i} '.fig']);
+    savefig(['images/results/val/' titles{i} '.fig']);
 end

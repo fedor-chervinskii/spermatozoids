@@ -30,7 +30,7 @@ for i = 1:4
     end
 end
 
-[y, x] = nonmaxsuppts(prob_map(:,:), 4, 0.4);
+[y, x] = nonmaxsuppts(prob_map(:,:), 3, 0.8);
 
 im_x = x + 14;
 im_y = y + 14;
@@ -53,7 +53,7 @@ angles = angles./2;
 rotated_patches = zeros(m,m,1,n_centers);
 
 for i = 1:n_centers
-    rotated_patches(:,:,1,i) = imrotate(patches(:,:,1,i), -angles(i), 'bilinear', 'crop');;
+    rotated_patches(:,:,1,i) = imrotate(patches(:,:,1,i), -angles(i), 'bilinear', 'crop');
 end
 bi_net = bi_net.makePass({single(patches); single(zeros(1,1,1,n_centers))});
 prediction = bi_net.getBlob('prediction');
@@ -63,5 +63,14 @@ for i = 1:n_centers
     vector = [cosd(angles(i)) -sind(angles(i))]*k(i)*7;
     line([im_x(i) im_x(i)+vector(1)],[im_y(i) im_y(i)+vector(2)],'Linewidth',4);
 end
+
 plot(im_x, im_y,'r.', 'MarkerSize',20)
+
+for i = 1:10 %n_centers
+    fh = figure;
+    imshow(rotated_patches(:,:,1,i),[-127,127]);
+    vector = k(i)*7;
+    line([14 14+vector],[14 14],'Linewidth',4);
+    waitfor(fh);
+end
 

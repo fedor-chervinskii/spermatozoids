@@ -6,24 +6,29 @@ num_rotations = 2;
 getAngle = true;
 firstZero = true;
 
-data = CollectPatches('labels/orientations/train/','images/train/', ...
-                                    m, num_rotations, getAngle, firstZero);
-data = data(data(:, end) >= 0, :); %only positive patches
-data = data(randperm(size(data, 1)), :)';
-n = size(data,2);
+if 1
+    data = CollectPatches('labels/orientations/train/','images/train/', ...
+                                        m, num_rotations, getAngle, firstZero);
+    data = data(data(:, end) >= 0, :); %only positive patches
+    data = data(randperm(size(data, 1)), :)';
+    n = size(data,2);
 
-angles = data(end,:);
-data = data(1:end-1,:);
+    angles = data(end,:);
+    data = data(1:end-1,:);
 
-fprintf('number of samples after augmentation %d\n',n);
+    fprintf('number of samples after augmentation %d\n',n);
 
-dataset = struct;
-dataset.imdb.images.angles = angles;
-dataset.imdb.images.labels = round(angles./180 + 0);
-dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
-%dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
+    dataset = struct;
+    dataset.imdb.images.angles = angles;
+    dataset.imdb.images.labels = round(angles./180);
+    dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
+    %dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
 
-dataset.imdb.images.data = dataset.imdb.images.data - 122;
+    dataset.imdb.images.data = dataset.imdb.images.data - 122;
+    save('exp/bi_dataset.mat', 'dataset');
+else
+    load('exp/bi_dataset.mat')
+end
 
 n = size(dataset.imdb.images.angles,2);
 
@@ -40,18 +45,20 @@ f=1/100 ;
 
 load('exp/regr_net.mat')
 net = MateNet( {
-  MateConvLayer(regr_net.layers{1,1}.weights.w{1,1}, ...
-                regr_net.layers{1,1}.weights.w{1,2}, ...
-                'stride', 1, 'pad', 0, 'name', 'conv1')
-  MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)
-  MateConvLayer(regr_net.layers{3,1}.weights.w{1,1}, ...
-                regr_net.layers{3,1}.weights.w{1,2}, ...
-                'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])
-  MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)  
-  MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
-                'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
-  MateReluLayer
+%   MateConvLayer(regr_net.layers{1,1}.weights.w{1,1}, ...
+%                 regr_net.layers{1,1}.weights.w{1,2}, ...
+%                 'stride', 1, 'pad', 0, 'name', 'conv1')
+%   MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)
+%   MateConvLayer(regr_net.layers{3,1}.weights.w{1,1}, ...
+%                 regr_net.layers{3,1}.weights.w{1,2}, ...
+%                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])
+%   MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)  
+%   MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
+%                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
+%   MateReluLayer
   MateFlattenLayer()
+  MateFullLayer(f*randn(500, 784, 'single'), zeros(500, 1, 'single'))
+  MateReluLayer
   MateFullLayer(f*randn(1, 500, 'single'), zeros(1, 1, 'single'),... 
                 'name', 'prediction')
   MateLogisticLossLayer('name','loss',...
@@ -75,7 +82,7 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs',20, 'continue', false, 'expDir', expDir,...
+     'numEpochs',30, 'continue', false, 'expDir', expDir,...
      'learningRate', 0.01, 'monitor', {'loss'},...
      'onEpochEnd', @onEpochEnd) ;
 
