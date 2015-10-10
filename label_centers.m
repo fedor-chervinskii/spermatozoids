@@ -8,5 +8,5 @@ frewind(f)
 while 1
     h = impoint;
     position = wait(h);
-    fprintf(f,'%.2f,%.2f\n',position);
+    fprintf(f,'%.2f,%.2f,1\n',position);
 end

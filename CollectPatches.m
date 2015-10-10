@@ -33,10 +33,10 @@ function [centers, labels] = GetCentersOfPatches(m, getAngle, name)
             angle = atan2d(A(4)-A(3),A(1)-A(2))+180;
             point = [Xc Yc];
         else
-            A = sscanf(tline, '%f,%f'); 
+            A = sscanf(tline, '%f,%f,%d'); 
             Xc = round(A(2));
             Yc = round(A(1));
-            angle = 0;
+            angle = A(3) - 1;
             point = [Xc Yc];
         end
         if IsInternalPoint(m, point)
