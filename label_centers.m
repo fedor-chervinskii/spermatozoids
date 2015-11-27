@@ -1,4 +1,4 @@
-name = 'train/C001H001S0001000002_1'
+name = 'train/C001H001S0001000002_2'
 figure, imshow(['images/' name '.tif']);
 f = fopen(['labels/centers/' name '.csv'],'a+');
 centers = load(['labels/centers/' name '.csv']);

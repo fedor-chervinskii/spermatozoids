@@ -1,14 +1,19 @@
 function [regr_net,info,dataset] = MateAngleRegression()
 %example is derived from the analogous MatConvNet example
 
-m = 28;
+collect_dataset = true;
 
-if 1
+if collect_dataset
+    m = 28;
     num_rotations = 10;
+
+    [X, Y] = meshgrid(-2:1:2,-2:1:2);
+    biases = [X(:) Y(:)];
+
     getAngle = true;
     firstZero = false;
     data = CollectPatches('labels/orientations/train/','images/train/', m, ...
-                           num_rotations, getAngle, firstZero);
+                           num_rotations, biases, getAngle, firstZero);
     data = data(randperm(size(data, 1)), :)';
     n = size(data,2);
 

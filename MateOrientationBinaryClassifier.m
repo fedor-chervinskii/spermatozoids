@@ -1,14 +1,19 @@
 function [bi_net,info,dataset] = MateOrientationBinaryClassifier()
 %example is derived from the analogous MatConvNet example
 
-m = 28
-num_rotations = 2;
-getAngle = true;
-firstZero = true;
+collect_dataset = false;
 
-if 1
+if collect_dataset
+    m = 28;
+    num_rotations = 2;
+    [X, Y] = meshgrid(-4:2:4,-4:2:4);
+    biases = [X(:) Y(:)];
+    getAngle = true;
+    firstZero = true;
+    
     data = CollectPatches('labels/orientations/train/','images/train/', ...
-                                        m, num_rotations, getAngle, firstZero);
+                                        m, num_rotations, biases, ...
+                                        getAngle, firstZero);
     data = data(data(:, end) >= 0, :); %only positive patches
     data = data(randperm(size(data, 1)), :)';
     n = size(data,2);
@@ -22,12 +27,11 @@ if 1
     dataset.imdb.images.angles = angles;
     dataset.imdb.images.labels = round(angles./180);
     dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
-    %dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
 
     dataset.imdb.images.data = dataset.imdb.images.data - 122;
     save('exp/bi_dataset.mat', 'dataset');
 else
-    load('exp/bi_dataset.mat')
+    load('exp/bi_dataset.mat');
 end
 
 n = size(dataset.imdb.images.angles,2);
@@ -45,25 +49,29 @@ f=1/100 ;
 
 load('exp/regr_net.mat')
 net = MateNet( {
-%   MateConvLayer(regr_net.layers{1,1}.weights.w{1,1}, ...
-%                 regr_net.layers{1,1}.weights.w{1,2}, ...
-%                 'stride', 1, 'pad', 0, 'name', 'conv1')
-%   MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)
-%   MateConvLayer(regr_net.layers{3,1}.weights.w{1,1}, ...
-%                 regr_net.layers{3,1}.weights.w{1,2}, ...
-%                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])
-%   MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)  
-%   MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
-%                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
-%   MateReluLayer
-  MateFlattenLayer()
-  MateFullLayer(f*randn(500, 784, 'single'), zeros(500, 1, 'single'))
+  MateConvLayer(regr_net.layers{1,1}.weights.w{1,1}, ...
+                regr_net.layers{1,1}.weights.w{1,2}, ...
+                'stride', 1, 'pad', 0, 'name', 'conv1')
+  MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)
+  MateConvLayer(f*randn(5,5,20,50, 'single'), zeros(1, 50, 'single'), ...
+                'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])
+  MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)  
+  MateConvLayer(f*randn(4,4,50,50, 'single'), zeros(1, 50, 'single'), ...
+                'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
   MateReluLayer
-  MateFullLayer(f*randn(1, 500, 'single'), zeros(1, 1, 'single'),... 
-                'name', 'prediction')
+  MateConvLayer(f*randn(1,1,50,1, 'single'), zeros(1, 1, 'single'),... 
+                'weightDecay', [0.005 0.005],'name','prediction')
+
+%   MateFlattenLayer()
+%   MateFullLayer(f*randn(500, 784, 'single'), zeros(500, 1, 'single'))
+%   MateReluLayer
+%   MateFullLayer(f*randn(1, 500, 'single'), zeros(1, 1, 'single'),... 
+%                 'name', 'prediction')
   MateLogisticLossLayer('name','loss',...
                 'takes',{'prediction','input:2'})
-  } );
+  MateLogisticErrorLayer('name','error',...
+                'takes',{'prediction','input:2'})
+} );
 
 
 %subtract mean
@@ -82,8 +90,8 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs',30, 'continue', false, 'expDir', expDir,...
-     'learningRate', 0.01, 'monitor', {'loss'},...
+     'numEpochs',10, 'continue', false, 'expDir', expDir,...
+     'learningRate', 0.005, 'monitor', {'loss','error'},...
      'onEpochEnd', @onEpochEnd) ;
 
 bi_net = net;

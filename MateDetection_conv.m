@@ -1,32 +1,43 @@
-function [class_net, info, dataset] = MateDetection_conv
+function MateDetection_conv
 
-m = 28;
-num_rotations = 10;
+collect_dataset = true;
 
-if 1
-    data = CollectPatches('labels/centers/train/','images/train/', m, num_rotations, false, false);
-    data = data(randperm(size(data, 1)), :)';
-    n = size(data,2);
+if collect_dataset
 
-    angles = data(end,:);
-    data = data(1:end-1,:);
+    m = 28;
+    num_rotations = 12;
+    [X, Y] = meshgrid(-0:1:0,-0:1:0);
+    biases = [X(:) Y(:)];
+    
+    getAngles = false;
+    firstZero = false;
+    
+    [ patches, angles ] = CollectPatches('labels/centers/train/','images/train/', m, ...
+        num_rotations, biases, getAngles, firstZero);
+    
+    new_idx = randperm(size(patches, 1));
+    patches = patches(new_idx, :)';
+    angles = angles(new_idx,:)';
+    n = size(patches,2);
 
     fprintf('number of samples after augmentation %d\n',n);
 
     dataset = struct;
     dataset.imdb.images.angles = angles;
     dataset.imdb.images.labels = round(angles./360 + 0.5);
-    dataset.imdb.images.data = single(reshape(data,m,m,1,[])) ;
+    dataset.imdb.images.data = reshape(patches,m,m,1,[]) ;
 
     dataset.imdb.images.data = dataset.imdb.images.data - 122;
 
-    save('exp/dataset.mat', 'dataset');
+    save('exp/dataset.mat', 'dataset', '-v7.3');
 else
     load('exp/dataset.mat')
 end
+
+dataset.imdb.images.data = single(dataset.imdb.images.data);
 n = size(dataset.imdb.images.labels,2)
 
-dataset.imdb.images.set = [ones(1,n - 1000) 3*ones(1, 1000)] ;
+dataset.imdb.images.set = [ones(1,n - 5000) 3*ones(1, 5000)] ;
 dataset.imdb.meta.sets = {'train', 'val', 'test'} ;
 dataset.imdb.meta.classes = arrayfun(@(x)sprintf('%d',x),0:1,'uniformoutput',false) ;
 
@@ -39,10 +50,10 @@ useGpu = false;
 f=1/100 ;
 
 net = MateNet( {
-  MateConvLayer(f*randn(5,5,1,20, 'single'), zeros(1, 20, 'single'), ...
+  MateConvLayer(f*randn(5,5,1,10, 'single'), zeros(1, 10, 'single'), ...
                 'stride', 1, 'pad', 0, 'name', 'conv1')
   MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)
-  MateConvLayer(f*randn(5,5,20,50, 'single'), zeros(1, 50, 'single'), ...
+  MateConvLayer(f*randn(5,5,10,50, 'single'), zeros(1, 50, 'single'), ...
                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])
   MatePoolLayer('pool',[2 2], 'stride', 2, 'pad', 0)  
   MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
@@ -52,6 +63,8 @@ net = MateNet( {
                 zeros(1, 1, 'single'), ...
                 'weightDecay', [0.005 0.005], 'name','prediction')
   MateLogisticLossLayer('name','loss',...
+                'takes',{'prediction','input:2'})
+  MateLogisticErrorLayer('name','error',...
                 'takes',{'prediction','input:2'})
 } );
  
@@ -68,8 +81,8 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs',30, 'continue', false, 'expDir', expDir,...
-     'learningRate', 0.005,'monitor', {'loss'},...
+     'numEpochs', 20 , 'continue', true, 'expDir', expDir,...
+     'learningRate', 0.005,'monitor', {'loss','error'},...
      'showLayers', 'conv1', 'onEpochEnd', @onEpochEnd) ;
 
 det_net = net;

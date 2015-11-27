@@ -2,15 +2,15 @@ function prob_map = PrepareProbMap()
 m = 28
 d = floor(m/2);
 
-load('exp/det_net.mat')
+load('exp/baseline_net.mat')
 
-num_classes = 1;
+num_classes = 37;
 
 mean_image = 122;
 
 % 1. Open the new unlabeled image
-name = 'C001H001S0001000003';
-filename = ['images/raw/' name '.tif'];
+name = 'C001H001S0001000002_4';
+filename = ['images/val/' name '.tif'];
 %name = 'C001H001S0001000002_3';
 %filename = ['images/' name '.tif'];
 image = single(imread(filename));

@@ -6,9 +6,12 @@ load('exp/orient_dataset.mat')
 
 num_orient_classes = 36;
 num_classes = num_orient_classes + 1;
-dataset.imdb.images.labels = round(angles./(360/num_orient_classes) + 0.5);
 
-dataset.imdb.images.labels = labels;
+dataset.num_classes = num_classes;
+dataset.imdb.images.labels = ...
+    round(dataset.imdb.images.angles./(360/num_orient_classes) + 0.5);
+
+n = size(dataset.imdb.images.angles,2);
 dataset.imdb.images.set = [ones(1,n - 5000) 3*ones(1, 5000)];
 dataset.imdb.meta.sets = {'train', 'val', 'test'};
 dataset.imdb.meta.classes = arrayfun(@(x)sprintf('%d',x),...
@@ -42,7 +45,6 @@ net = MateNet( {
                 'takes',{'prediction','input:2'})
   } );
 
-
 %subtract mean
 dataset.imdb.images.data = bsxfun(@minus, dataset.imdb.images.data,122) ;
           
@@ -58,16 +60,21 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs',15, 'continue', false, 'expDir', expDir,...
+     'numEpochs',30, 'continue', true, 'expDir', expDir,...
      'learningRate', 0.001,'monitor', {'loss','error'},...
      'showLayers', 'conv1') ;
 
+baseline_net = net;
+save('exp/baseline_net.mat', 'baseline_net');
+ 
 %----------------------------------------------------------%
 
 function [x, eoe, dataset] = getBatch(istrain, batchNo, dataset)
 eoe=false;
 batchStart = batchNo*dataset.batchSize+1;
 batchEnd = (batchNo+1)*dataset.batchSize;
+
+num_classes = dataset.num_classes;
 
 if istrain
   if batchEnd >= numel(dataset.train)

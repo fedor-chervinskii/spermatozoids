@@ -1,4 +1,4 @@
-name = 'train/C001H001S0001000001_1'
+name = 'val/C001H001S0001000002_4'
 figure, imshow(['images/' name '.tif']);
 f = fopen(['labels/orientations/' name '.csv'],'a+');
 frewind(f)

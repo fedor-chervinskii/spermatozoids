@@ -73,13 +73,7 @@ for i = 1:n_max_steps
         [assignment, cost] = assignmentoptimal(D);
         costs(i,j) = cost;
         fn(i,j) = sum(assignment == 0);
-        is_assigned = zeros(num_found,1);
-        for k = 1:num_pos
-            if assignment(k)
-                is_assigned(assignment(k)) = 1;
-            end
-        end
-        tp(i,j) = sum(is_assigned == 1);
+        tp(i,j) = sum(assignment > 0);
         fp(i,j) = num_found - tp(i,j);
         recall(i,j) = tp(i,j)/num_pos;
         precision(i,j) = tp(i,j)/num_found;

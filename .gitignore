@@ -1,3 +1,7 @@
 *.mat
 
 *.pdf
+
+images
+labels
+docs

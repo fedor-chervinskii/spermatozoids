@@ -30,7 +30,7 @@ for i = 1:4
     end
 end
 
-[y, x] = nonmaxsuppts(prob_map(:,:), 3, 0.8);
+[y, x] = nonmaxsuppts(prob_map(:,:), 2, 0.1);
 
 im_x = x + 14;
 im_y = y + 14;
@@ -47,15 +47,17 @@ end
 
 regr_net = regr_net.makePass({single(patches); single(zeros(1,1,2,n_centers))});
 prediction = regr_net.getBlob('prediction');
-angles = atan2d(prediction(1,:),prediction(2,:));
-angles = angles./2;
+angles = atan2d(-prediction(1,:),-prediction(2,:));
+angles = (angles+180)./2;
 
-rotated_patches = zeros(m,m,1,n_centers);
+centers = [im_y, im_x];
+labels = angles';
+biases = [0, 0];
+rotated_patches = GetAugmentedPatches(m, image, 1, true, biases,...
+    centers, labels);
+rotated_patches = reshape(rotated_patches',m,m,1,n_centers);
 
-for i = 1:n_centers
-    rotated_patches(:,:,1,i) = imrotate(patches(:,:,1,i), -angles(i), 'bilinear', 'crop');
-end
-bi_net = bi_net.makePass({single(patches); single(zeros(1,1,1,n_centers))});
+bi_net = bi_net.makePass({single(rotated_patches); single(zeros(1,1,1,n_centers))});
 prediction = bi_net.getBlob('prediction');
 k = [squeeze(prediction) > 0]*2-1;
 
@@ -68,6 +70,9 @@ plot(im_x, im_y,'r.', 'MarkerSize',20)
 
 for i = 1:10 %n_centers
     fh = figure;
+    subplot(1,2,1)
+    imshow(patches(:,:,1,i),[-127,127]);
+    subplot(1,2,2)
     imshow(rotated_patches(:,:,1,i),[-127,127]);
     vector = k(i)*7;
     line([14 14+vector],[14 14],'Linewidth',4);
