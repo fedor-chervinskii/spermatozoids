@@ -19,6 +19,11 @@ function [ patches, labels ] = CollectPatches(labels_dir, imgs_dir, m, ...
         patches = [patches; new_patches];
         labels = [labels; new_labels];
     end
+    
+    %random permutation
+    n = size(patches, 1);
+    [patches, idx] = datasample(patches, n);
+    labels = labels(idx);
 end
 
 

@@ -1,4 +1,4 @@
-function [net,info,dataset] = Baseline_conv
+function [net,info,dataset] = MateDetection
 
 m = 28
 

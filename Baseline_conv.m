@@ -1,8 +1,10 @@
-function [net,info,dataset] = Baseline_conv
+function [net,info,dataset] = baseline_conv
 
 m = 28
 
-load('exp/orient_dataset.mat')
+dataset = struct;
+
+dataset.imdb = load('exp/imdb_orient.mat');
 
 num_orient_classes = 36;
 num_classes = num_orient_classes + 1;
@@ -18,7 +20,7 @@ dataset.imdb.meta.classes = arrayfun(@(x)sprintf('%d',x),...
     0:num_orient_classes,'uniformoutput',false);
 
 [thispath,~,~] = fileparts(mfilename('fullpath'));
-expDir = [thispath '/exp'];
+expDir = [thispath '/exp/baseline'];
 useGpu = false;
 
 % Define the network
@@ -36,8 +38,8 @@ net = MateNet( {
                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
   MateReluLayer
   MateFlattenLayer
-  MateFullLayer(f*randn(num_classes,500, 'single'), zeros(num_classes,1, 'single'),... 
-                'weightDecay', [0.005 0.005], 'name','prediction')
+  MateFullLayer(f*randn(num_classes, 500, 'single'), zeros(num_classes, 1, ...
+                'single'), 'weightDecay', [0.005 0.005], 'name','prediction')
   MateSoftmaxLossLayer('name','loss',...
                 'takes',{'prediction','input:2'})
   MateSoftmaxLayer('name','softmax','takes','prediction','skipBackward',1)
@@ -60,7 +62,7 @@ dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
 [net,info,dataset] = net.trainNet(@getBatch, dataset,...
-     'numEpochs',30, 'continue', true, 'expDir', expDir,...
+     'numEpochs',40, 'continue', true, 'expDir', expDir,...
      'learningRate', 0.001,'monitor', {'loss','error'},...
      'showLayers', 'conv1') ;
 

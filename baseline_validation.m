@@ -1,68 +1,59 @@
+m = 28;
+d = m/2;
+
+% Open the validation image
 img_filename = 'images/val/C001H001S0001000002_4.tif'
 labels_filename = 'labels/orientations/val/C001H001S0001000002_4.csv'
 
-m = 28
-d = floor(m/2)
+load('exp/baseline_net.mat')
+net = baseline_net;
+num_classes = size(baseline_net.layers{end-2, 1}.ex,1);
 
-load('exp/det_net.mat')
-load('exp/regr_net.mat')
-load('exp/bi_net.mat')
-
-% 1. Open the new unlabeled image
+% 1. Open the image
 image = single(imread(img_filename));
 imsize = size(image);
-%imshow(img_filename);
-%hold on;
 
 height = imsize(1);
 width = imsize(2);
 %calculate output dimensions
 out_height = floor((floor((height - 3 - 4)/2) - 4)/2) - 3;
 out_width = floor((floor((width - 3 - 4)/2) - 4)/2) - 3;
-prob_map = zeros(out_height*4,out_width*4);
 
 image = image - 122; %mean subtraction
 
-for i = 1:4
-    for j = 1:4
-        det_net = det_net.makePass({single(image(i:end-4+i,j:end-4+j));
-                                        single(zeros(out_height, out_width, 1, 1))});
-        x = det_net.getBlob('prediction');
-        prob_map(i:4:end-4+i,j:4:end-4+j) = squeeze(x);
-        fprintf('%d/16\n',4*(i-1) + j)
+% 2. Iterate over the internal image points, call the feedforward 
+% and get the predictions for classes.
+num_patches_in_row = size(image, 2)-m+1;
+num_rows = size(image, 1)-m+1;
+prob_map = zeros(num_rows, num_patches_in_row, num_classes);
+
+for i = 1:num_rows
+    patches = zeros(num_patches_in_row,m,m);
+    for j = 1:num_patches_in_row
+        patches(j,:,:) = image(i:i+m-1,j:j+m-1);
     end
+    patches = permute(reshape(patches, [num_patches_in_row m m 1]), [2 3 4 1]);
+    net = net.makePass({single(patches); single(zeros(num_classes, num_patches_in_row))});
+    prediction = net.getBlob('prediction');
+    prob_map(i,:,:) = prediction';
+    i
 end
 
-[y, x] = nonmaxsuppts(prob_map(:,:), 1, 1);
+%take maximum over all classes, storing the matrix of corresponding classes
+[segment_map, class_idx] = max(prob_map,[],3);
+segment_map(class_idx == 1) = 0;
+
+[y, x] = nonmaxsuppts(segment_map(:,:), 5, 10);
 
 im_x = x + 14;
 im_y = y + 14;
 
 num_found = numel(im_x)
 
-patches = zeros(m,m,1,num_found);
-
+angles = zeros(num_found,1);
 for i = 1:num_found
-    Xc = im_x(i);
-    Yc = im_y(i);
-    patches(:,:,1,i) = image(Yc-d:Yc+d-1,Xc-d:Xc+d-1);
+    angles(i) = 360/(num_classes-1)*(class_idx(y(i), x(i))-1.5);
 end
-
-regr_net = regr_net.makePass({single(patches); single(zeros(1,1,2,num_found))});
-prediction = regr_net.getBlob('prediction');
-angles = atan2d(-prediction(1,:),-prediction(2,:));
-angles = (angles'+180)./2;
-
-centers = [im_y, im_x];
-biases = [0, 0];
-rotated_patches = GetAugmentedPatches(m, image, 1, true, biases,...
-    centers, angles);
-rotated_patches = reshape(rotated_patches',m,m,1,num_found);
-
-bi_net = bi_net.makePass({single(rotated_patches); single(zeros(1,1,1,num_found))});
-prediction = bi_net.getBlob('prediction');
-k = (squeeze(prediction) > 0);
-angles = angles + k*180;
 
 f = fopen(labels_filename,'r');
 gt_centers = zeros(5000,2);
@@ -95,6 +86,12 @@ D = pdist2(gt_centers,pred_centers);
 D(D > nearest_thresh) = Inf;
 [assignment, cost] = assignmentoptimal(D);
 fn = sum(assignment == 0);
+tp = sum(assignment > 0);
+fp = num_found - tp;
+recall = tp/num_pos;
+precision = tp/num_found;
+f_measure = 2*recall*precision/(recall+precision);
+
 angle_errors = zeros(num_found,1);
 for k = 1:num_pos
     if assignment(k)
@@ -103,10 +100,5 @@ for k = 1:num_pos
             min(diff, 360-diff);
     end
 end
-tp = sum(assignment > 0);
-fp = num_found - tp;
-recall = tp/num_pos;
-precision = tp/num_found;
-f_measure = 2*recall*precision/(recall+precision);
 
-angle_errors = angle_errors(angle_errors ~= 0);
+%angle_errors = angle_errors(angle_errors ~= 0);
