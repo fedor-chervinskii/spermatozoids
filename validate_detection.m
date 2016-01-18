@@ -21,9 +21,9 @@ for i = 1:n_max_steps+1
         D(D > nearest_thresh) = Inf;
         [assignment, cost] = assignmentoptimal(D);
         costs(i,j) = cost;
-        fn(i,j) = sum(assignment == 0);
         tp(i,j) = sum(assignment > 0);
         fp(i,j) = num_found - tp(i,j);
+        fn(i,j) = num_pos - tp(i,j);
         recall(i,j) = tp(i,j)/num_pos;
         precision(i,j) = tp(i,j)/num_found;
         f_measure(i,j) = 2*recall(i,j)*precision(i,j)/(recall(i,j)+precision(i,j));

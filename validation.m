@@ -105,8 +105,9 @@ for k = 1:num_pos
 end
 tp = sum(assignment > 0);
 fp = num_found - tp;
+fn = num_pos - tp;
 recall = tp/num_pos;
 precision = tp/num_found;
 f_measure = 2*recall*precision/(recall+precision);
 
-angle_errors = angle_errors(angle_errors ~= 0);
+%angle_errors = angle_errors(angle_errors ~= 0);
