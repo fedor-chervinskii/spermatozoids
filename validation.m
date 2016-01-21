@@ -26,14 +26,15 @@ image = image - 122; %mean subtraction
 for i = 1:4
     for j = 1:4
         det_net = det_net.makePass({single(image(i:end-4+i,j:end-4+j));
-                                        single(zeros(out_height, out_width, 1, 1))});
+                                        single(zeros(out_height, out_width, 2, 1))});
         x = det_net.getBlob('prediction');
-        prob_map(i:4:end-4+i,j:4:end-4+j) = squeeze(x);
+        prob_map(i:4:end-4+i,j:4:end-4+j) = ...
+            exp(x(:,:,2))./(exp(x(:,:,1))+exp(x(:,:,2)));  %hand-crafted softmax
         fprintf('%d/16\n',4*(i-1) + j)
     end
 end
 
-[y, x] = nonmaxsuppts(prob_map(:,:), 1, 1);
+[y, x] = nonmaxsuppts(prob_map(:,:), 6, 0.8);
 
 im_x = x + 14;
 im_y = y + 14;

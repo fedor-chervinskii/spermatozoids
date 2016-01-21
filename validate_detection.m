@@ -1,5 +1,5 @@
-n_max_steps = 10
-n_rad_steps = 6
+max_steps = 0:0.05:0.85
+rad_steps = 2:2:10
 nearest_thresh = 5
 
 tp = zeros(n_max_steps,n_rad_steps);
@@ -9,10 +9,10 @@ recall = zeros(n_max_steps,n_rad_steps);
 precision = zeros(n_max_steps,n_rad_steps);
 f_measure = zeros(n_max_steps,n_rad_steps);
 costs = zeros(n_max_steps,n_rad_steps);
-for i = 1:n_max_steps+1
-    for j = 1:n_rad_steps
-        fprintf('radius = %i, max threshold = %.2f\n', j, i/(n_max_steps-1));
-        [y, x] = nonmaxsuppts(prob_map(:,:,1), j, i/(n_max_steps-1));
+for i = 1:numel(max_steps)
+    for j = 1:numel(rad_steps)
+        fprintf('radius = %i, max threshold = %.2f\n', rad_steps(j), max_steps(i));
+        [y, x] = nonmaxsuppts(prob_map, rad_steps(j), max_steps(i));
         y = y + d;
         x = x + d;
         num_found = numel(x)
