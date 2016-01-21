@@ -34,7 +34,7 @@ for i = 1:4
     end
 end
 
-[y, x] = nonmaxsuppts(prob_map(:,:), 6, 0.8);
+[y, x] = nonmaxsuppts(prob_map, 6, 0.97);
 
 im_x = x + 14;
 im_y = y + 14;

@@ -62,16 +62,25 @@ function [r,c, rsubp, csubp] = nonmaxsuppts(cim, radius, thresh, im)
     % match the dilated image and are also greater than the threshold.
     sze = 2*radius+1;                    % Size of dilation mask.
     mx = ordfilt2(cim, sze^2,ones(sze)); % Grey-scale dilate.
-
+    
     % Make mask to exclude points within radius of the image boundary. 
     bordermask = zeros(size(cim));
     bordermask(radius+1:end-radius, radius+1:end-radius) = 1;
     
     % Find maxima, threshold, and apply bordermask
     cimmx = (cim==mx) & (cim>thresh) & bordermask;
-    
-    [r,c] = find(cimmx);                % Find row,col coords.
 
+    % Hard-coded suppression for the case of plateau maxima
+    for i = 1:size(cimmx,1)
+        for j = 1:size(cimmx,2)
+            if cimmx(i,j)
+                cimmx(i-radius:i+radius,j-radius:j+radius) = 0;
+                cimmx(i,j) = 1;
+            end    
+        end
+    end
+        
+    [r,c] = find(cimmx);                % Find row,col coords.
     
     if subPixel        % Compute local maxima to sub pixel accuracy  
         if ~isempty(r) % ...if we have some ponts to work with
