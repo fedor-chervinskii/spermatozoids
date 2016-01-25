@@ -1,7 +1,7 @@
 function [net, info] = train_detection(varargin)
 
-expDir = fullfile('exp','det_net') ;
-dataDir = fullfile('exp') ;
+expDir = fullfile('exp','det_net');
+dataDir = fullfile('exp');
 imdbPath = fullfile(dataDir, 'imdb_det.mat');
 
 dataset = struct;
@@ -15,7 +15,7 @@ dataset.batchSize = 100;
 net = init_lenet_3();
 
 [net,info] = net.trainNet(@getBatch, dataset,...
-     'numEpochs', 20 , 'continue', true, 'expDir', expDir,...
+     'numEpochs', 20, 'continue', true, 'expDir', expDir,...
      'learningRate', 0.001, 'monitor', {'loss','error'},...
      'showLayers', 'conv1') ;
 
@@ -43,7 +43,7 @@ else
   batch = dataset.val(batchStart:batchEnd); 
 end
 
-x{1} = dataset.imdb.images.data(:,:,:,batch) ;
+x{1} = single(dataset.imdb.images.data(:,:,:,batch)) ;
 labels = dataset.imdb.images.labels(batch) ;
 %x{2} = zeros([1 1 1 numel(batch)],'single');
 %x{2}(1,1,1,:) = labels(:)*2 - 1;

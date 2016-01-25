@@ -19,7 +19,8 @@ out_height = floor((floor((height - 3 - 4)/2) - 4)/2) - 3;
 out_width = floor((floor((width - 3 - 4)/2) - 4)/2) - 3;
 prob_map = zeros(out_height*4,out_width*4);
 
-image = image - 122;
+% 2. Pass the image through the detection net
+image = preprocess(image);
 for i = 1:4
     for j = 1:4
         det_net = det_net.makePass({single(image(i:end-4+i,j:end-4+j));
@@ -31,6 +32,7 @@ for i = 1:4
     end
 end
 
+% 3. Detect maxima of output
 [y, x] = nonmaxsuppts(prob_map, 6, 0.97);
 
 im_x = x + d;
@@ -38,6 +40,7 @@ im_y = y + d;
 
 n_centers = numel(im_x)
 
+% 4. Cut patches with cells proposals
 patches = zeros(m,m,1,n_centers);
 
 for i = 1:n_centers
@@ -46,11 +49,13 @@ for i = 1:n_centers
     patches(:,:,1,i) = image(Yc-d:Yc+d-1,Xc-d:Xc+d-1);
 end
 
+% 5. Angle regression on the patches
 regr_net = regr_net.makePass({single(patches); single(zeros(1,1,2,n_centers))});
 prediction = regr_net.getBlob('prediction');
 angles = atan2d(-prediction(1,:),-prediction(2,:));
 angles = (angles+180)./2;
 
+% 6. Rotate all patches to a horizontal orientation
 centers = [im_y, im_x];
 labels = angles';
 biases = [0, 0];
@@ -58,25 +63,16 @@ rotated_patches = GetAugmentedPatches(m, image, 1, true, biases,...
     centers, labels);
 rotated_patches = reshape(rotated_patches',m,m,1,n_centers);
 
+% 7. Resolve the ambiguity
 bi_net = bi_net.makePass({single(rotated_patches); single(zeros(1,1,1,n_centers))});
 prediction = bi_net.getBlob('prediction');
 k = (squeeze(prediction) > 0)*2-1;
 
+% plot vectors
 for i = 1:n_centers
     vector = [cosd(angles(i)) -sind(angles(i))]*k(i)*7;
     line([im_x(i) im_x(i)+vector(1)],[im_y(i) im_y(i)+vector(2)],'Linewidth',4);
 end
 
+% plot centers
 plot(im_x, im_y, 'r.', 'MarkerSize',20)
-
-% for i = 1:10 %n_centers
-%     fh = figure;
-%     subplot(1,2,1)
-%     imshow(patches(:,:,1,i),[-127,127]);
-%     subplot(1,2,2)
-%     imshow(rotated_patches(:,:,1,i),[-127,127]);
-%     vector = k(i)*7;
-%     line([14 14+vector],[14 14],'Linewidth',4);
-%     waitfor(fh);
-% end
-% 

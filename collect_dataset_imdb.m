@@ -7,9 +7,11 @@ imdbPath = 'exp/imdb_det';
 images_dir = 'images/train/';
 labels_dir = 'labels/centers/train/';
 
-m = 28;
+rng(0);
+
+m = 28; % changing this number will influence NN's structure
 num_rotations = 10;
-%[X, Y] = meshgrid(-2:2:2,-2:2:2);  % jittering
+%[X, Y] = meshgrid(-1:2:1,-1:2:1);  % jittering
 %biases = [X(:) Y(:)];
 biases = [0 0]; 
 
@@ -18,7 +20,7 @@ firstZero = false;
     
 % --------------------------------------------------------------------
 
-[ patches, angles ] = CollectPatches(labels_dir, images_dir, m, ...
+[ patches, angles ] = collect_patches(labels_dir, images_dir, m, ...
     num_rotations, biases, getAngle, firstZero);
     
 n = size(patches,1);
@@ -30,9 +32,7 @@ imdb.images.angles = angles;
 imdb.images.labels = round(angles./360 + 0.5);
 imdb.images.data = reshape(patches',m,m,1,[]) ;
 
-imdb.images.data = imdb.images.data - 122;
-
-imdb.images.data = single(imdb.images.data);
+imdb.images.data = preprocess(imdb.images.data);
 test_size = 5000;
 
 imdb.images.set = [ones(1,n - test_size) 3*ones(1, test_size)] ;
