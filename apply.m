@@ -59,14 +59,14 @@ angles = (angles+180)./2;
 centers = [im_y, im_x];
 labels = angles';
 biases = [0, 0];
-rotated_patches = GetAugmentedPatches(m, image, 1, true, biases,...
+rotated_patches = augment_patches(m, image, 1, true, biases,...
     centers, labels);
 rotated_patches = reshape(rotated_patches',m,m,1,n_centers);
 
 % 7. Resolve the ambiguity
-bi_net = bi_net.makePass({single(rotated_patches); single(zeros(1,1,1,n_centers))});
+bi_net = bi_net.makePass({single(rotated_patches); single(zeros(2,n_centers))});
 prediction = bi_net.getBlob('prediction');
-k = (squeeze(prediction) > 0)*2-1;
+k = (prediction(1,:) < prediction(2,:)).*2 - 1;
 
 % plot vectors
 for i = 1:n_centers

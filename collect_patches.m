@@ -1,12 +1,11 @@
 function [ patches, labels ] = collect_patches(labels_dir, imgs_dir, m, ...
-                                num_rotations, biases, getAngle, firstZero)
+                                num_rotations, biases, getAngle, firstZero, neg)
     fileList = dir([labels_dir '*.csv']);
     fileList = {fileList.name}';
 
     patches = [];
     labels = [];
-    neg = true; %collect negatives
-
+    
     for i = 1:numel(fileList)
         name = fileList{i}(1:end-4);
         fprintf('processing %s\n',name);

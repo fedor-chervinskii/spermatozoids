@@ -12,7 +12,7 @@ dataset.train = find(dataset.imdb.images.set == 1);
 dataset.val = find(dataset.imdb.images.set == 3);
 dataset.batchSize = 100;
 
-net = init_lenet_3();
+net = init_det_net();
 
 [net,info] = net.trainNet(@getBatch, dataset,...
      'numEpochs', 20, 'continue', true, 'expDir', expDir,...

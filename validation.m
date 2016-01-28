@@ -56,14 +56,15 @@ angles = (angles'+180)./2;
 
 centers = [im_y, im_x];
 biases = [0, 0];
-rotated_patches = GetAugmentedPatches(m, image, 1, true, biases,...
+rotated_patches = augment_patches(m, image, 1, true, biases,...
     centers, angles);
 rotated_patches = reshape(rotated_patches',m,m,1,num_found);
 
-bi_net = bi_net.makePass({single(rotated_patches); single(zeros(1,1,1,num_found))});
+bi_net = bi_net.makePass({single(rotated_patches); single(zeros(2,num_found))});
 prediction = bi_net.getBlob('prediction');
-k = (squeeze(prediction) > 0);
-angles = angles + k*180;
+k = (prediction(1,:) < prediction(2,:));
+%k = (squeeze(prediction) > 0);
+angles = angles + k'*180;
 
 f = fopen(labels_filename,'r');
 gt_centers = zeros(5000,2);
@@ -111,4 +112,9 @@ recall = tp/num_pos;
 precision = tp/num_found;
 f_measure = 2*recall*precision/(recall+precision);
 
+figure
+subplot(1,2,1)
+h = histogram(angle_errors(angle_errors>0),180)
+subplot(1,2,2)
+plot(cumsum(h.Values)./num_pos)
 %angle_errors = angle_errors(angle_errors ~= 0);

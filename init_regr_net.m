@@ -1,6 +1,4 @@
-function net = init_lenet_3
-% initialize fully-convolutional 2-class softmax loss detection net
-
+function net = init_regr_net
 
 rng('default');
 rng(0) ;
@@ -17,11 +15,10 @@ net = MateNet( {
   MateConvLayer(f*randn(4,4,50,500, 'single'), zeros(1, 500, 'single'), ...
                 'stride', 1, 'pad', 0, 'weightDecay', [0.005 0.005])  
   MateReluLayer
-  MateConvLayer(f*randn(1, 1, 500, 2, 'single'), zeros(1, 2, ...
-                'single'), 'weightDecay', [0.005 0.005], 'name','prediction')
-  MateSoftmaxLossLayer('name','loss',...
-                'takes',{'prediction','input:2'})
-  MateSoftmaxLayer('name','softmax','takes','prediction','skipBackward',1)
-  MateMultilabelErrorLayer('name','error',...
+  MateConvLayer(f*randn(1,1,500,2, 'single'), zeros(1, 2, 'single'),... 
+                'weightDecay', [0.005 0.005])
+  MateSqueezeLayer
+  MateL2NormalizeLayer('name','prediction')
+  MateL2LossLayer('name','loss',...
                 'takes',{'prediction','input:2'})
   } );

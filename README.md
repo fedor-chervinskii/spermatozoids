@@ -8,7 +8,7 @@ Project demonstrates application of convolutional neural networks and deep learn
 
 This framework is working in Matlab.
 
-1. First, make sure to install [MatConvNet](http://www.vlfeat.org/matconvnet/)
+1. First, install [MatConvNet](http://www.vlfeat.org/matconvnet/)
 
 2. Install [Mat??](https://github.com/victorlempitsky/Mate)
 
@@ -16,4 +16,4 @@ This framework is working in Matlab.
 
 4. >>> setup
 
-5. You are good to go! Try pretrained models using "apply.m", or label your data using "label_centers.m" and "label_orientations.m" and then train model defined in "init_..." by running "train_detection.m"
+5. You are good to go! Try pretrained models using "apply(_path_to_your_image_)", or label your data using "label_centers.m" and "label_orientations.m" and then train model defined in "init_..." by running "train_detection.m"

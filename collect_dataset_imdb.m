@@ -1,27 +1,29 @@
 % --------------------------------------------------------------------
+% Collect patches from raw microscopic images
 % Prepare and save the imdb structure
 
 % following parameters are to be changed
 
-imdbPath = 'exp/imdb_det';
+imdbPath = 'exp/imdb_bi';
 images_dir = 'images/train/';
-labels_dir = 'labels/centers/train/';
+labels_dir = 'labels/orientations/train/';
 
 rng(0);
 
-m = 28; % changing this number will influence NN's structure
-num_rotations = 10;
-%[X, Y] = meshgrid(-1:2:1,-1:2:1);  % jittering
-%biases = [X(:) Y(:)];
-biases = [0 0]; 
+m = 28; % patch size, changing this number will influence NN's structure
+num_rotations = 2;
+[X, Y] = meshgrid(-4:2:4,-4:2:4);  % jittering
+biases = [X(:) Y(:)];
+%biases = [0 0]; 
 
-getAngle = false;
-firstZero = false;
+getAngle = true;     % collect with labeled angles
+firstZero = true;   % collect with certain orientations
+neg = false;         % collect negatives
     
 % --------------------------------------------------------------------
 
 [ patches, angles ] = collect_patches(labels_dir, images_dir, m, ...
-    num_rotations, biases, getAngle, firstZero);
+    num_rotations, biases, getAngle, firstZero, neg);
     
 n = size(patches,1);
 
