@@ -16,28 +16,44 @@ imsize = size(image);
 
 height = imsize(1);
 width = imsize(2);
-%calculate output dimensions
-out_height = floor((floor((height - 3 - 4)/2) - 4)/2) - 3;
-out_width = floor((floor((width - 3 - 4)/2) - 4)/2) - 3;
-prob_map = zeros(out_height*4,out_width*4);
 
+faster = false;
+
+%calculate output dimensions
+if faster
+    out_height = floor((floor((height - 4)/2) - 4)/2) - 3;
+    out_width = floor((floor((width - 4)/2) - 4)/2) - 3;
+    prob_map = zeros(out_height,out_width);
+else
+    out_height = floor((floor((height - 3 - 4)/2) - 4)/2) - 3;
+    out_width = floor((floor((width - 3 - 4)/2) - 4)/2) - 3;
+    prob_map = zeros(out_height*4,out_width*4);
+end
+    
 image = image - 122; %mean subtraction
 
-for i = 1:4
-    for j = 1:4
-        det_net = det_net.makePass({single(image(i:end-4+i,j:end-4+j));
-                                        single(zeros(out_height, out_width, 2, 1))});
-        x = det_net.getBlob('prediction');
-        prob_map(i:4:end-4+i,j:4:end-4+j) = ...
-            exp(x(:,:,2))./(exp(x(:,:,1))+exp(x(:,:,2)));  %hand-crafted softmax
-        fprintf('%d/16\n',4*(i-1) + j)
+if ~faster
+    for i = 1:4
+        for j = 1:4
+            det_net = det_net.makePass({single(image(i:end-4+i,j:end-4+j));
+                                         single(zeros(out_height, out_width, 2, 1))});
+            x = det_net.getBlob('prediction');
+            prob_map(i:4:end-4+i,j:4:end-4+j) = ...
+                exp(x(:,:,2))./(exp(x(:,:,1))+exp(x(:,:,2)));  %hand-crafted softmax
+            fprintf('%d/16\n',4*(i-1) + j)
+        end
     end
+    [y, x] = nonmaxsuppts(prob_map, 6, 0.97);
+
+    im_x = x + 14;
+    im_y = y + 14;
+else
+    det_net = det_net.makePass({single(image);single(zeros(out_height, out_width, 2, 1))}); x = det_net.getBlob('prediction');
+    prob_map(:,:) = exp(x(:,:,2))./(exp(x(:,:,1))+exp(x(:,:,2)));
+    [y, x] = nonmaxsuppts(prob_map, 1, 0.5);
+    im_x = x.*4 + 12;
+    im_y = y.*4 + 12;
 end
-
-[y, x] = nonmaxsuppts(prob_map, 6, 0.97);
-
-im_x = x + 14;
-im_y = y + 14;
 
 num_found = numel(im_x)
 

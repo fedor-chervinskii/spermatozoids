@@ -45,6 +45,10 @@ function [centers, labels] = GetCentersOfPatches(name, m, getAngle, neg)
             A = sscanf(tline, '%f,%f,%d'); 
             Xc = round(A(2));
             Yc = round(A(1));
+            if ~neg && ~A(3)
+                tline = fgetl(f);
+                continue
+            end
             angle = A(3) - 1;
             point = [Xc Yc];
         end

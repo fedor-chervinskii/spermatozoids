@@ -1,9 +1,9 @@
-function apply(filename)
+function [centers, angles] = apply(filename)
 
 m = 28
 d = m/2;
 
-load('exp/det_net.mat')
+load('exp/det_net_hard.mat')
 load('exp/regr_net.mat')
 load('exp/bi_net.mat')
 

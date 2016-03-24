@@ -4,21 +4,21 @@
 
 % following parameters are to be changed
 
-imdbPath = 'exp/imdb_bi';
+imdbPath = 'exp/imdb_det_hard';
 images_dir = 'images/train/';
-labels_dir = 'labels/orientations/train/';
+labels_dir = 'labels/centers/train/';
 
 rng(0);
 
 m = 28; % patch size, changing this number will influence NN's structure
-num_rotations = 2;
-[X, Y] = meshgrid(-4:2:4,-4:2:4);  % jittering
-biases = [X(:) Y(:)];
-%biases = [0 0]; 
+num_rotations = 10;
+%[X, Y] = meshgrid(-4:2:4,-4:2:4);  % jittering
+%biases = [X(:) Y(:)];
+biases = [0 0]; 
 
-getAngle = true;     % collect with labeled angles
-firstZero = true;   % collect with certain orientations
-neg = false;         % collect negatives
+getAngle = false;     % collect with labeled angles
+firstZero = false;   % collect with certain orientations
+neg = true;         % collect negatives
     
 % --------------------------------------------------------------------
 

@@ -2,7 +2,7 @@ function [net, info] = train_detection(varargin)
 
 expDir = fullfile('exp','det_net');
 dataDir = fullfile('exp');
-imdbPath = fullfile(dataDir, 'imdb_det.mat');
+imdbPath = fullfile(dataDir, 'imdb_det_hard.mat');
 
 dataset = struct;
 
@@ -15,12 +15,12 @@ dataset.batchSize = 100;
 net = init_det_net();
 
 [net,info] = net.trainNet(@getBatch, dataset,...
-     'numEpochs', 20, 'continue', true, 'expDir', expDir,...
+     'numEpochs', 30, 'continue', true, 'expDir', expDir,...
      'learningRate', 0.001, 'monitor', {'loss','error'},...
      'showLayers', 'conv1') ;
 
 det_net = net;
-save('exp/det_net.mat', 'det_net');
+save('exp/det_net_hard.mat', 'det_net');
 
 % --------------------------------------------------------------------
 function [x, eoe, dataset] = getBatch(istrain, batchNo, dataset)
